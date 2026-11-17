@@ -1,9 +1,11 @@
 class Onibus:
-    def __init__(self, nome, linha, nomeSentido):
+    def __init__(self, nome, linha):
         self.nome = nome
         self.linha = linha
-        self.sentidos = Sentido(nomeSentido)
+        self.sentidos: list[Sentido] = []
 
+        def adicionarSentido(self, sentido: Sentido):
+            self.sentidos.append(sentido)
 
 class Sentido:
     def __init__(self, nome):

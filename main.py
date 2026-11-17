@@ -1,6 +1,8 @@
 from playwright.sync_api import sync_playwright
 from informacoes import Onibus, Sentido
 
+listaInformacoes = []
+
 with sync_playwright() as pw:
     navegador = pw.chromium.launch(channel="msedge", headless=False)
     contexto = navegador.new_context()
@@ -15,31 +17,33 @@ with sync_playwright() as pw:
             terminal.click()
 
             for linha in pagina.locator(".mdl-card__actions").get_by_role("link").all():
-                with contexto.expect_page() as nova_pagina:
-                    linha.click()
+                linha.click()
 
-                paginaLinha = nova_pagina.value
-                paginaLinha.wait_for_load_state("networkidle")
+                pagina.wait_for_load_state("domcontentloaded")
+            
+                novoObjeto = Onibus(pagina.locator(".mdl-typography--title").inner_text(), pagina.locator(".onibus-routes__id-big").inner_text())
 
-                novoObjeto = Onibus(paginaLinha.locator(".mdl-typography--title").inner_text(), paginaLinha.locator(".onibus-routes__id-big").inner_text())
+                pagina.get_by_role("link", name="Horários").click()
+                pagina.get_by_text("Ver tabela horário").click()
+                sentidosPagina = pagina.locator(".onibus-route__direction-mid").locator(".onibus-text-strong").all()
 
-                paginaLinha.get_by_role("link", name="Horários").click()
+                for i in range(len(sentidosPagina)):
+                    sentido = Sentido(sentidosPagina[i].inner_text())
 
-                sentidosPagina = paginaLinha.locator(".onibus-route__direction-mid").get_by_role("link").all()
+                    horarios = pagina.locator(".onibus-route__time-cell").all()
+                    for horario in horarios:
+                        sentido.adicionar_horario(horario.inner_text())
 
-                for sentidoPagina in sentidosPagina:
-                    novoObjeto.sentidos = Sentido(sentidoPagina.inner_text())
+                    paradas = sentidosPagina[i].locator("#timetable-itinerary").locator(".ng-scope").all()
+                    for parada in paradas:
+                        sentido.adicionar_parada(parada.inner_text())
 
-                enderecos = paginaLinha.locator(".timeline").get_by_role("link").all()
-                for endereco in enderecos:
-                    if endereco.is_visible():
-                        novoObjeto.adicionar_parada(endereco.inner_text())
+                    novoObjeto.adicionarSentido(sentido)
 
-                itemHorario = paginaLinha.get_by_role("link", name="Horários").click()
+                listaInformacoes.append(novoObjeto)
+                pagina.go_back()
+                pagina.wait_for_load_state("networkidle")
 
-
-
-                paginaLinha.go_back()
-                paginaLinha.wait_for_load_state("networkidle")
+    print(listaInformacoes)
 
     navegador.close()
