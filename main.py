@@ -26,6 +26,8 @@ with sync_playwright() as pw:
             
                 pagina.get_by_role("link", name="Horários").click()
                 pagina.get_by_text("Ver tabela horário").click()
+                pagina.wait_for_load_state("domcontentloaded")
+
                 novoObjeto = Onibus(pagina.locator(".mdl-typography--headline").nth(0).inner_text(), pagina.locator(".onibus-routes__id-big").nth(0).inner_text())
                 sentidosPagina = pagina.locator(".onibus-route__direction-mid").locator(".onibus-text-strong").all()           
 
@@ -41,7 +43,7 @@ with sync_playwright() as pw:
                         horario.adicionar_horario(listaHorarios)
                         sentido.adicionar_listahorario(horario)    
 
-                    paradas = divHorario.locator("#timetable-itinerary").locator(".ng-scope").all()
+                    paradas = divHorario.locator("#timetable-itinerary").locator(".ng-binding").all()
                     for parada in paradas:
                         sentido.adicionar_parada(parada.inner_text())
 
