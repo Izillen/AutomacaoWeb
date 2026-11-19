@@ -29,11 +29,15 @@ with sync_playwright() as pw:
                 pagina.wait_for_load_state("domcontentloaded")
 
                 novoObjeto = Onibus(pagina.locator(".mdl-typography--headline").nth(0).inner_text(), pagina.locator(".onibus-routes__id-big").nth(0).inner_text())
-                sentidosPagina = pagina.locator(".onibus-route__direction-mid").locator(".onibus-text-strong").all()           
+                sentidosPagina = pagina.locator(".onibus-route__direction-mid").locator(".onibus-text-strong").all()  
 
                 for i in range(len(sentidosPagina)):
                     sentido = Sentido(sentidosPagina[i].inner_text())
-                    divHorario = pagina.locator("#general-timetable").locator('#tt-' + str(i))
+
+                    if len(sentidosPagina) == 1:
+                        divHorario = pagina.locator("#general-timetable")
+                    else:
+                        divHorario = pagina.locator("#general-timetable").locator(f"#tt-{i}")
 
                     tabelasHorarios = divHorario.locator(".timetable-print").all()
                     for cell in tabelasHorarios:
