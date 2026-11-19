@@ -1,8 +1,40 @@
+from asyncio import timeout
+
 from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError
 from informacoes import Onibus, Sentido, Horarios
 import json
 
 listaInformacoes = []
+def aguardarParadas(pagina, locator, timeout=10000):
+    tempoEspera = 500
+    tentativas = timeout // tempoEspera
+
+    paradasAnterior = []
+    estabilidade = 0
+
+    for _ in range(tentativas):
+
+        paradasAtual = [
+            parada.strip()
+            for parada in locator.all_inner_texts()
+            if parada.strip()
+        ]
+
+        if paradasAtual and paradasAtual == paradasAnterior:
+            estabilidade += 1
+        else:
+            estabilidade = 0
+
+        # Se os dados permanecerem iguais por 3 verificações
+        if estabilidade >= 3:
+            return paradasAtual
+
+        paradasAnterior = paradasAtual
+
+        pagina.wait_for_timeout(tempoEspera)
+
+    return paradasAnterior
 
 with sync_playwright() as pw:
     navegador = pw.chromium.launch(channel="msedge", headless=True)
@@ -13,14 +45,14 @@ with sync_playwright() as pw:
     terminais = pagina.locator(".onibus-content").get_by_text("expand_more").all()
     # pagina.locator("[id=\"Terminal Central\"]").get_by_text("0040").click()
 
-    for terminal in terminais:
+    for terminal in terminais:  
         if terminal.is_visible():
             terminal.click()
 
             links = pagina.locator(".mdl-card__actions").get_by_role("link")
             urls = links.evaluate_all("elements => elements.map(element => element.href)")
 
-            for url in urls:
+            for url in urls:  
                 pagina.goto(url)
                 pagina.wait_for_load_state("domcontentloaded")
             
@@ -47,9 +79,17 @@ with sync_playwright() as pw:
                         horario.adicionar_horario(listaHorarios)
                         sentido.adicionar_listahorario(horario)    
 
-                    paradas = divHorario.locator("#timetable-itinerary").locator(".ng-binding").all()
-                    for parada in paradas:
-                        sentido.adicionar_parada(parada.inner_text())
+                    containerParadas = divHorario.locator("#timetable-itinerary")
+                    paradasLocator = containerParadas.locator(".ng-binding")
+
+                    paradas = aguardarParadas(pagina, paradasLocator)
+
+                    if not paradas:
+                        print(f"ERRO: Paradas vazias - Linha {novoObjeto.linha} - Sentido {sentido.nome}")
+
+                    else:
+                        for parada in paradas:
+                            sentido.adicionar_parada(parada)
 
                     novoObjeto.adicionarSentido(sentido)
 
@@ -65,3 +105,4 @@ with sync_playwright() as pw:
     print("Arquivo JSON gerado com sucesso!")
 
     navegador.close()
+
