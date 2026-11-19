@@ -9,7 +9,7 @@ class Onibus:
 
     def to_dict(self):
         return {
-            "nome": self.nome,
+            "nomeLinha": self.nome,
             "linha": self.linha,
             "sentidos": [sentido.to_dict() for sentido in self.sentidos]
         }
@@ -28,7 +28,7 @@ class Sentido:
 
     def to_dict(self):
         return {
-            "nome": self.nome,
+            "nomeSentido": self.nome,
             "paradas": self.paradas,
             "horarios": [horario.to_dict() for horario in self.horarios]
         }
